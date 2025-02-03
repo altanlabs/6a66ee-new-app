@@ -4,14 +4,47 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { motion } from "framer-motion"
-import { FileText, Upload, Loader2 } from "lucide-react"
+import { FileText, Upload, Loader2, Download } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { PDFDownloadLink, Document, Page, Text, View, StyleSheet, pdf } from '@react-pdf/renderer'
+
+// Estilos para el PDF
+const styles = StyleSheet.create({
+  page: {
+    flexDirection: 'column',
+    backgroundColor: '#FFFFFF',
+    padding: 30,
+  },
+  title: {
+    fontSize: 24,
+    marginBottom: 20,
+    fontWeight: 'bold',
+  },
+  text: {
+    fontSize: 12,
+    lineHeight: 1.5,
+    textAlign: 'justify',
+  },
+});
+
+// Componente del PDF
+const PDFDocument = ({ summary, fileName }: { summary: string, fileName: string }) => (
+  <Document>
+    <Page size="A4" style={styles.page}>
+      <View>
+        <Text style={styles.title}>Resumen del documento: {fileName}</Text>
+        <Text style={styles.text}>{summary}</Text>
+      </View>
+    </Page>
+  </Document>
+);
 
 export default function IndexPage() {
   const [file, setFile] = useState<File | null>(null)
   const [summary, setSummary] = useState<string>("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string>("")
+  const [pdfReady, setPdfReady] = useState(false)
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const uploadedFile = acceptedFiles[0]
@@ -21,6 +54,7 @@ export default function IndexPage() {
     }
     setFile(uploadedFile)
     setError("")
+    setPdfReady(false)
   }, [])
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -36,16 +70,38 @@ export default function IndexPage() {
     setLoading(true)
     setSummary("")
     setError("")
+    setPdfReady(false)
 
     try {
       // Aquí iría la lógica de procesamiento del PDF
       // Por ahora es un placeholder
       await new Promise(resolve => setTimeout(resolve, 2000))
-      setSummary("Este es un resumen de ejemplo del PDF...")
+      setSummary("Este es un resumen de ejemplo del PDF. El documento contiene información importante sobre varios temas clave. Los puntos principales incluyen: 1) Primer punto importante del documento. 2) Segundo punto relevante encontrado en el texto. 3) Tercera conclusión significativa del contenido. El análisis muestra que los datos presentados son coherentes y bien estructurados...")
+      setPdfReady(true)
     } catch (err) {
       setError("Error al procesar el PDF. Por favor, intenta de nuevo.")
     } finally {
       setLoading(false)
+    }
+  }
+
+  const downloadPDF = async () => {
+    if (!summary || !file) return
+
+    try {
+      const blob = await pdf(
+        <PDFDocument summary={summary} fileName={file.name} />
+      ).toBlob()
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `resumen-${file.name}`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      setError("Error al generar el PDF del resumen")
     }
   }
 
@@ -125,7 +181,18 @@ export default function IndexPage() {
 
         {summary && (
           <Card className="p-8">
-            <h2 className="text-2xl font-semibold mb-4">Resumen</h2>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-2xl font-semibold">Resumen</h2>
+              <Button
+                variant="outline"
+                onClick={downloadPDF}
+                disabled={!pdfReady}
+                className="gap-2"
+              >
+                <Download className="h-4 w-4" />
+                Descargar PDF
+              </Button>
+            </div>
             <p className="text-gray-600 dark:text-gray-300 whitespace-pre-line">
               {summary}
             </p>
