@@ -41,6 +41,7 @@
     "@radix-ui/react-visually-hidden": "^1.1.1",
     "@radix-ui/themes": "^3.1.6",
     "@react-pdf/renderer": "^4.1.6",
+    "@types/pdf-parse": "^1.1.4",
     "axios": "^1.7.9",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
