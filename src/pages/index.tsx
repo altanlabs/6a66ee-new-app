@@ -7,6 +7,8 @@ import { motion } from "framer-motion"
 import { FileText, Upload, Loader2, Download } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { PDFDownloadLink, Document, Page, Text, View, StyleSheet, pdf } from '@react-pdf/renderer'
+import { extractTextFromPDF, generateSummary } from "@/utils/pdfProcessor"
+import { Progress } from "@/components/ui/progress"
 
 // Estilos para el PDF
 const styles = StyleSheet.create({
@@ -45,6 +47,7 @@ export default function IndexPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string>("")
   const [pdfReady, setPdfReady] = useState(false)
+  const [progress, setProgress] = useState(0)
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const uploadedFile = acceptedFiles[0]
@@ -55,6 +58,8 @@ export default function IndexPage() {
     setFile(uploadedFile)
     setError("")
     setPdfReady(false)
+    setSummary("")
+    setProgress(0)
   }, [])
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -71,15 +76,23 @@ export default function IndexPage() {
     setSummary("")
     setError("")
     setPdfReady(false)
+    setProgress(0)
 
     try {
-      // Aquí iría la lógica de procesamiento del PDF
-      // Por ahora es un placeholder
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      setSummary("Este es un resumen de ejemplo del PDF. El documento contiene información importante sobre varios temas clave. Los puntos principales incluyen: 1) Primer punto importante del documento. 2) Segundo punto relevante encontrado en el texto. 3) Tercera conclusión significativa del contenido. El análisis muestra que los datos presentados son coherentes y bien estructurados...")
+      // Extracción del texto
+      setProgress(25)
+      const text = await extractTextFromPDF(file)
+      
+      // Generación del resumen
+      setProgress(50)
+      const generatedSummary = await generateSummary(text)
+      
+      setProgress(100)
+      setSummary(generatedSummary)
       setPdfReady(true)
     } catch (err) {
       setError("Error al procesar el PDF. Por favor, intenta de nuevo.")
+      console.error(err)
     } finally {
       setLoading(false)
     }
@@ -177,6 +190,17 @@ export default function IndexPage() {
               </>
             )}
           </Button>
+
+          {loading && progress > 0 && (
+            <div className="mt-4 space-y-2">
+              <Progress value={progress} className="w-full" />
+              <p className="text-sm text-center text-muted-foreground">
+                {progress < 50 ? "Extrayendo texto del PDF..." : 
+                 progress < 100 ? "Generando resumen..." : 
+                 "¡Resumen completado!"}
+              </p>
+            </div>
+          )}
         </Card>
 
         {summary && (
