@@ -2,7 +2,7 @@ import pdfParse from 'pdf-parse';
 import OpenAI from 'openai';
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: process.env.VITE_OPENAI_API_KEY,
 });
 
 export async function extractTextFromPDF(file: File): Promise<string> {
@@ -10,8 +10,9 @@ export async function extractTextFromPDF(file: File): Promise<string> {
     const reader = new FileReader();
     reader.onload = async function(event) {
       try {
-        if (!event.target?.result) throw new Error('No se pudo leer el archivo');
-        const data = await pdfParse(event.target.result);
+        const arrayBuffer = event.target?.result as ArrayBuffer;
+        if (!arrayBuffer) throw new Error('No se pudo leer el archivo');
+        const data = await pdfParse(arrayBuffer);
         resolve(data.text);
       } catch (error) {
         reject(error);
